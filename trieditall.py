@@ -145,13 +145,6 @@ st.sidebar.markdown(
 "
     f"**Remaining:** {len(combos)}"
 )
-st.sidebar.markdown(
-    f"**Total combos:** {len(combos)}  
-"
-    f"**Eliminated:** 0  
-"
-    f"**Remaining:** {len(combos)}"
-)
 
 # Combo lookup widget
 st.sidebar.markdown("---")
