@@ -198,7 +198,7 @@ if {1}.issubset(set(seed)): eliminate(combo)
 if {5}.issubset(set(seed)): eliminate(combo)
 if {6}.issubset(set(seed)): eliminate(combo)
 "eliminate combo if no digit = 1 digit from cold digits,"
-eliminate combo if combo does not contain the mirror of any digts in the seeed.
+eliminate combo if combo does not contain the mirror of any digts in the seed.
 "if any digit in the combo is = seed sum last digit mirror, eliminate."
 "if any digit in the seed is  0 and combo does not contain either 1, 2, or 3, eliminate combo."
 eliminate combos if all five digits are >/=3.
