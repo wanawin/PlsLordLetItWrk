@@ -70,9 +70,7 @@ def apply_filter(desc, combo_digits, seed_digits,
                  prev_seed_digits, prev_prev_draw_digits,
                  seed_counts, new_seed_digits):
     # normalize and match description exactly
-    d = desc.strip()
-    # convert any Unicode operators to ASCII
-    d = d.replace('≥', '>=').replace('≤', '<=')
+    d = desc.strip().replace('≥', '>=').replace('≤', '<=')
     sum_combo = sum(combo_digits)
     common_to_both = set(prev_prev_draw_digits).intersection(prev_seed_digits)
     last2 = set(prev_prev_draw_digits) | set(prev_seed_digits)
@@ -101,14 +99,14 @@ def apply_filter(desc, combo_digits, seed_digits,
     if d == "if set(combo).issubset(last2): eliminate(combo)":
         return set(combo_digits).issubset(last2)
 
-    # additional V-Trac example: eliminate if all digits share same group
+    # V-Trac example: eliminate if all digits share same group
     if d == "V-TRAC: all digits same group":
         groups = [get_v_trac_group(d) for d in combo_digits]
         return len(set(groups)) == 1
 
-    # additional Mirror example: eliminate if a combo contains both a digit and its mirror
+    # Mirror example: eliminate if combo contains a digit and its mirror
     if d == "MIRROR: eliminate if contains mirror pairs":
-        return any((get_mirror(d) in combo_digits) for d in combo_digits)
+        return any(get_mirror(d) in combo_digits for d in combo_digits)
 
     return False
 
@@ -143,7 +141,7 @@ cold_digits = [int(d) for d in re.findall(r"\d+", cold_input)] if cold_input els
 due_digits = [int(d) for d in re.findall(r"\d+", due_input)] if due_input else []
 method = st.sidebar.selectbox("Generation Method:", ["1-digit","2-digit pair"])
 
-# Generate combos and helper vars
+# Generate combos
 combos = generate_combinations(today_seed, method)
 if not combos:
     st.sidebar.error("No combos generated. Check current seed.")
@@ -166,3 +164,48 @@ for combo in combos:
     else:
         new_surv.append(combo)
 
+survivors = new_surv
+eliminated_details = new_elim
+
+# Metrics
+eliminated_counts = len(eliminated_details)
+remaining_counts = len(survivors)
+st.sidebar.markdown(
+    f"**Total combos:** {len(combos)}  \
+**Eliminated:** {eliminated_counts}  \
+**Remaining:** {remaining_counts}"
+)
+
+# Combo lookup
+st.sidebar.markdown('---')
+query = st.sidebar.text_input("Check a combo (any order):")
+if query:
+    key = ''.join(sorted(query.strip()))
+    if key in eliminated_details:
+        st.sidebar.warning(f"Eliminated by: {eliminated_details[key]}")
+    elif key in survivors:
+        st.sidebar.success("It still survives!")
+    else:
+        st.sidebar.info("Not generated.")
+
+# Filter UI
+st.header("🔧 Active Filters")
+select_all = st.checkbox("Select/Deselect All Filters")
+for i, desc in enumerate(filters_list):
+    count_elim = sum(
+        apply_filter(desc,
+                     [int(c) for c in combo],
+                     seed_digits,
+                     prev_seed_digits,
+                     prev_prev_draw_digits,
+                     seed_counts,
+                     new_seed_digits)
+        for combo in combos
+    )
+    label = f"{desc} — eliminated {count_elim}"
+    st.checkbox(label, value=select_all, key=f"filter_{i}")
+
+# Survivors listing
+with st.expander("Show remaining combinations"):
+    for c in survivors:
+        st.write(c)
