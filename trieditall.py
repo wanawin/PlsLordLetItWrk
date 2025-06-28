@@ -120,27 +120,24 @@ if not combos:
 seed_digits = [int(d) for d in current_seed]
 
 # ─── Compute elimination help counts ───
-elim_counts = {}
-for desc in filters_list:
-    cnt = 0
-    for combo in combos:
-        cd = [int(c) for c in combo]
-        if apply_filter(desc, cd, seed_digits):
-            cnt += 1
-    elim_counts[desc] = cnt
+elim_counts = {desc: sum(apply_filter(desc, [int(c) for c in combo], seed_digits) for combo in combos) for desc in filters_list}
 
-# ─── Active Filters Section (dynamic on check) ───
-st.sidebar.header("🔧 Active Filters")
-select_all = st.sidebar.checkbox("Select/Deselect All Filters", value=False)
+# ─── Main Filters & Stats ───
+st.header("🔧 Active Filters & Combo Stats")
+
+# Stats always visible at top of main
+st.markdown(f"**Total combos:** {len(combos)}  \
+**Eliminated (selected filters):** TBD  \
+**Remaining:** TBD")
+
+# Filter checkboxes in main area
+def sidebar_to_main():
+    pass
+select_all = st.checkbox("Select/Deselect All Filters", value=False)
 selected = []
 for i, desc in enumerate(filters_list):
     label = f"{desc} — eliminated {elim_counts[desc]}"
-    checked = st.sidebar.checkbox(
-        label=label,
-        value=select_all,
-        key=f"filter_{i}"
-    )
-    if checked:
+    if st.checkbox(label, value=select_all, key=f"filter_{i}"):
         selected.append(desc)
 
 # apply filters immediately
@@ -156,12 +153,11 @@ for combo in combos:
 survivors, eliminated_details = new_surv, new_elim
 eliminated_counts = len(eliminated_details)
 
-# ─── Sidebar Ribbon & Lookup ───
-st.sidebar.markdown(f"""
-**Total combos:** {len(combos)}  
-**Eliminated:** {eliminated_counts}  
-**Remaining:** {len(survivors)}
-""" )
+# Update stats now that filters applied
+st.markdown(f"**Eliminated (selected filters):** {eliminated_counts}  \
+**Remaining:** {len(survivors)}")
+
+# ─── Sidebar Lookup ───
 st.sidebar.markdown('---')
 query = st.sidebar.text_input("Check a combo (any order):")
 if query:
