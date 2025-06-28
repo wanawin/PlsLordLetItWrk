@@ -6,7 +6,7 @@ import csv
 import os
 
 # Read filter intent descriptions from plain text file
-txt_path = '/mnt/data/filter_intent_summary_corrected_only.csv'
+txt_path = 'filter_intent_summary_corrected_only.csv'
 filters_list = []
 if os.path.exists(txt_path):
     with open(txt_path, 'r', encoding='utf-8') as f:
