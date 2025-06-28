@@ -151,10 +151,14 @@ for d in eliminated_details.values():
 
 # Main page: checkboxes for each filter
 st.header("🔧 Active Filters")
+# Master select-all toggle
+select_all = st.checkbox("Select/Deselect All Filters", value=False)
 selected = []
 for desc in filters_list:
     label = f"{desc} — eliminated {filter_counts[desc]}"
-    if st.checkbox(label, True, key=f"f_{hash(desc)}"):
+    # default to master toggle state
+    checked = select_all
+    if st.checkbox(label, value=checked, key=f"f_{hash(desc)}"):
         selected.append(desc)
 
 # Re-apply selected filters to update survivors
