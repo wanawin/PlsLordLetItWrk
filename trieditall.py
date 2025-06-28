@@ -137,6 +137,28 @@ for combo in combos:
 eliminated_counts = len(eliminated_details)
 
 # ─── Interactive Filter UI & Combo Lookup ───
+# Sidebar initial counts (with no filters applied)
+st.sidebar.markdown(
+    f"**Total combos:** {len(combos)}  
+"
+    f"**Eliminated:** 0  
+"
+    f"**Remaining:** {len(combos)}"
+)
+
+# Combo lookup widget
+st.sidebar.markdown("---")
+query = st.sidebar.text_input("Check a combo (any order):")
+if query:
+    key = "".join(sorted(query.strip()))
+    if key in eliminated_details:
+        st.sidebar.warning(f"Eliminated by: {eliminated_details[key]}")
+    elif key in survivors:
+        st.sidebar.success("It still survives!")
+    else:
+        st.sidebar.info("Not generated.")
+
+# Per-filter elimination counts
 # (Only show updated counts after manual selection)
 
 # Per-filter elimination counts
