@@ -112,25 +112,19 @@ current_seed = input_seed("Current 5-digit seed (required):")
 prev_seed    = input_seed("Previous 5-digit seed (required):")
 method       = st.sidebar.selectbox("Generation Method:",["1-digit","2-digit pair"])
 
-# generate & apply
+# generate combos
 combos = generate_combinations(prev_seed, method)
 if not combos:
     st.sidebar.error("No combos generated. Check previous seed.")
     st.stop()
 seed_digits = [int(d) for d in current_seed]
-eliminated_details = {}
-survivors = []
-for combo in combos:
-    cd = [int(c) for c in combo]
-    for desc in filters_list:
-        if apply_filter(desc, cd, seed_digits):
-            eliminated_details[combo] = desc
-            break
-    else:
-        survivors.append(combo)
-eliminated_counts = len(eliminated_details)
 
-# ─── Sidebar Ribbon & Lookup ┎──
+# initially no elimination
+eliminated_details = {}
+survivors = list(combos)
+eliminated_counts = 0
+
+# ─── Sidebar Ribbon & Lookup ───
 st.sidebar.markdown(f"""
 **Total combos:** {len(combos)}  
 **Eliminated:** {eliminated_counts}  
@@ -157,7 +151,7 @@ for desc in filters_list:
     if st.checkbox(label, value=select_all, key=f"f_{hash(desc)}"):
         selected.append(desc)
 
-# re-apply selected filters
+# apply only selected filters
 new_surv = []
 new_elim = {}
 for combo in combos:
@@ -171,14 +165,14 @@ for combo in combos:
 survivors, eliminated_details = new_surv, new_elim
 eliminated_counts = len(eliminated_details)
 
-# update ribbon
+# update sidebar ribbon
 st.sidebar.markdown(f"""
 **Total combos:** {len(combos)}  
 **Eliminated:** {eliminated_counts}  
 **Remaining:** {len(survivors)}
-"""
-)
+""" )
 
+# show survivors
 with st.expander("Show remaining combinations"):
     for c in survivors:
         st.write(c)
