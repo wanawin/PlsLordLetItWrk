@@ -122,36 +122,32 @@ seed_digits = [int(d) for d in current_seed]
 # ─── Compute elimination help counts ───
 elim_counts = {desc: sum(apply_filter(desc, [int(c) for c in combo], seed_digits) for combo in combos) for desc in filters_list}
 
-# ─── Filter selection & elimination ┎──
-st.header("🔧 Active Filters & Combo Stats")
-select_all = st.checkbox("Select/Deselect All Filters", value=False)
+# ─── Selection & elimination ───
 selected = []
 for i, desc in enumerate(filters_list):
-    label = f"{desc} — eliminated {elim_counts[desc]}"
-    if st.checkbox(label, value=select_all, key=f"filter_{i}"):
-        selected.append(desc)
-
-# apply filters immediately
+    # we will collect selected filters via session_state
+    pass
+# apply filters based on checkbox states
 new_surv, new_elim = [], {}
 for combo in combos:
     cd = [int(c) for c in combo]
-    for desc in selected:
-        if apply_filter(desc, cd, seed_digits):
-            new_elim[combo] = desc
-            break
+    for desc in filters_list:
+        if st.session_state.get(f"filter_{filters_list.index(desc)}", False):
+            if apply_filter(desc, cd, seed_digits):
+                new_elim[combo] = desc
+                break
     else:
         new_surv.append(combo)
 survivors, eliminated_details = new_surv, new_elim
 eliminated_counts = len(eliminated_details)
 remaining_counts = len(survivors)
 
-# ─── Display stats in a fixed area ───
-col1, col2, col3 = st.columns(3)
-col1.metric("Total Combos", len(combos))
-col2.metric("Eliminated", eliminated_counts)
-col3.metric("Remaining", remaining_counts)
-
-# ─── Sidebar Lookup ┎──
+# ─── Sidebar metrics & lookup ───
+st.sidebar.markdown(f"""
+**Total combos:** {len(combos)}  
+**Eliminated:** {eliminated_counts}  
+**Remaining:** {remaining_counts}
+""" )
 st.sidebar.markdown('---')
 query = st.sidebar.text_input("Check a combo (any order):")
 if query:
@@ -163,7 +159,18 @@ if query:
     else:
         st.sidebar.info("Not generated.")
 
-# ─── Show survivors ┎──
+# ─── Main filters in white space ───
+st.header("🔧 Active Filters")
+select_all = st.checkbox("Select/Deselect All Filters", value=False)
+for i, desc in enumerate(filters_list):
+    label = f"{desc} — eliminated {elim_counts[desc]}"
+    st.checkbox(
+        label=label,
+        value=select_all,
+        key=f"filter_{i}"
+    )
+
+# ─── Show survivors ───
 with st.expander("Show remaining combinations"):
     for c in survivors:
         st.write(c)
