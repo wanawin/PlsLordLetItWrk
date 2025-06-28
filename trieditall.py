@@ -138,8 +138,14 @@ eliminated_counts = len(eliminated_details)
 
 # ─── Interactive Filter UI & Combo Lookup ───
 # Sidebar initial counts (with no filters applied)
+# Sidebar initial counts (with no filters applied)
 st.sidebar.markdown(
     f"**Total combos:** {len(combos)}  
+"
+    f"**Eliminated:** 0  
+"
+    f"**Remaining:** {len(combos)}"
+)}  
 "
     f"**Eliminated:** 0  
 "
