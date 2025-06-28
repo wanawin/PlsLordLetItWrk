@@ -74,48 +74,129 @@ def generate_combinations(seed, method="2-digit pair"):
 def apply_filter(desc, combo_digits, seed_digits,
                  prev_seed_digits, prev_prev_draw_digits,
                  seed_counts, new_seed_digits):
-    # normalize and match description
+    # normalize Unicode operators
     d = desc.strip().replace('≥', '>=').replace('≤', '<=')
     sum_combo = sum(combo_digits)
     common_to_both = set(prev_prev_draw_digits).intersection(prev_seed_digits)
     last2 = set(prev_prev_draw_digits) | set(prev_seed_digits)
 
-    # 1. FullHouse on seed (3 of one digit + 2 of another) AND combo sum is even
+    # 1. FullHouse on seed (3+2) AND combo sum even
     if d == "if set(seed_counts.values()) == {2, 3} and sum(combo) % 2 == 0: eliminate(combo)":
         return set(seed_counts.values()) == {2, 3} and sum_combo % 2 == 0
-
-    # 2. Any new seed digit (not in prev_seed) must appear in combo
+    # 2. New seed digit must appear
     if d == "if new_seed_digits and not new_seed_digits.intersection(combo): eliminate(combo)":
         return bool(new_seed_digits) and not new_seed_digits.intersection(combo_digits)
-
-    # 3. ≥2 digits common to both prev_seed AND prev_prev_draw
+    # 3. ≥2 common to both prev_seed & prev_prev_draw
     if d == "if sum(d in common_to_both for d in combo) >= 2: eliminate(combo)":
         return sum(d in common_to_both for d in combo_digits) >= 2
-
-    # 4. fewer than 2 of last-2-draw digits → eliminate
+    # 4. <2 of last2
     if d == "if len(last2.intersection(combo)) < 2: eliminate(combo)":
         return len(last2.intersection(combo_digits)) < 2
-
-    # 5. eliminate if ≥2 of last-2-draw digits
+    # 5. ≥2 of last2
     if d == "if len(last2.intersection(combo)) >= 2: eliminate(combo)":
         return len(last2.intersection(combo_digits)) >= 2
-
-    # 6. eliminate if all combo digits come from last-2 draws
+    # 6. all from last2
     if d == "if set(combo).issubset(last2): eliminate(combo)":
         return set(combo_digits).issubset(last2)
-
-    # V-Trac example: eliminate if all digits share same group
+    # V-TRAC: all same group
     if d.lower().startswith("v-trac"):
         groups = [get_v_trac_group(digit) for digit in combo_digits]
         return len(set(groups)) == 1
-
-    # Mirror filter: eliminate if combo contains both a digit and its mirror
+    # Mirror: any digit with its mirror
     if "mirror" in d.lower():
         return any(get_mirror(digit) in combo_digits for digit in combo_digits)
-
     return False
 
 # ─── Streamlit UI ───
 st.sidebar.header("🔢 DC-5 Filter Tracker Full")
 
-# ... rest of your Streamlit app code continues unchanged ...
+def input_seed(label, required=True):
+    v = st.sidebar.text_input(label).strip()
+    if required and not v:
+        st.sidebar.error(f"Please enter {label.lower()}")
+        st.stop()
+    if v and (len(v) != 5 or not v.isdigit()):
+        st.sidebar.error("Seed must be exactly 5 digits (0–9)")
+        st.stop()
+    return v
+
+# Inputs
+today_seed = input_seed("Current 5-digit seed (required):")
+prev_seed = input_seed("Previous 5-digit seed (optional):", required=False)
+prev_prev_draw = input_seed("Draw before previous seed (optional):", required=False)
+
+prev_seed_digits = [int(d) for d in prev_seed] if prev_seed else []
+prev_prev_draw_digits = [int(d) for d in prev_prev_draw] if prev_prev_draw else []
+
+hot_input = st.sidebar.text_input("Hot digits (optional, comma-separated):")
+cold_input = st.sidebar.text_input("Cold digits (optional, comma-separated):")
+due_input = st.sidebar.text_input("Due digits (optional, comma-separated):")
+hot_digits = [int(d) for d in re.findall(r"\d+", hot_input)] if hot_input else []
+cold_digits = [int(d) for d in re.findall(r"\d+", cold_input)] if cold_input else []
+due_digits = [int(d) for d in re.findall(r"\d+", due_input)] if due_input else []
+method = st.sidebar.selectbox("Generation Method:", ["1-digit","2-digit pair"])
+
+# Generate combos
+combos = generate_combinations(today_seed, method)
+if not combos:
+    st.sidebar.error("No combos generated. Check current seed.")
+    st.stop()
+seed_digits = [int(d) for d in today_seed]
+seed_counts = Counter(seed_digits)
+new_seed_digits = set(seed_digits) - set(prev_seed_digits)
+
+# Elimination
+survivors = []
+eliminated_details = {}
+for combo in combos:
+    cd = [int(c) for c in combo]
+    eliminated = False
+    for i, desc in enumerate(filters_list):
+        if st.session_state.get(f"filter_{i}", False):
+            if apply_filter(desc, cd, seed_digits,
+                            prev_seed_digits, prev_prev_draw_digits,
+                            seed_counts, new_seed_digits):
+                eliminated_details[combo] = desc
+                eliminated = True
+                break
+    if not eliminated:
+        survivors.append(combo)
+
+# Metrics
+st.sidebar.markdown(f"**Total combos:** {len(combos)}  \
+**Eliminated:** {len(eliminated_details)}  \
+**Remaining:** {len(survivors)}")
+
+# Combo lookup
+st.sidebar.markdown('---')
+query = st.sidebar.text_input("Check a combo (any order):")
+if query:
+    key = ''.join(sorted(query.strip()))
+    if key in eliminated_details:
+        st.sidebar.warning(f"Eliminated by: {eliminated_details[key]}")
+    elif key in survivors:
+        st.sidebar.success("It still survives!")
+    else:
+        st.sidebar.info("Not generated.")
+
+# Active Filters UI
+st.header("🔧 Active Filters")
+select_all = st.checkbox("Select/Deselect All Filters")
+for i, desc in enumerate(filters_list):
+    count_elim = sum(
+        apply_filter(desc,
+                     [int(c) for c in combo],
+                     seed_digits,
+                     prev_seed_digits,
+                     prev_prev_draw_digits,
+                     seed_counts,
+                     new_seed_digits)
+        for combo in combos
+    )
+    label = f"{desc} — eliminated {count_elim}"
+    st.checkbox(label, value=select_all, key=f"filter_{i}")
+
+# Show remaining combos
+with st.expander("Show remaining combinations"):
+    for c in survivors:
+        st.write(c)
