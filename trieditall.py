@@ -137,13 +137,12 @@ for combo in combos:
 eliminated_counts = len(eliminated_details)
 
 # ─── Interactive Filter UI & Combo Lookup ───
-
 # Sidebar initial counts (with no filters applied)
-st.sidebar.markdown(
-    f"**Total combos:** {len(combos)}  \n"
-    f"**Eliminated:** 0  \n"
-    f"**Remaining:** {len(combos)}"
-)
+st.sidebar.markdown(f"""
+**Total combos:** {len(combos)}  
+**Eliminated:** 0  
+**Remaining:** {len(combos)}
+""")
 
 # Combo lookup widget
 st.sidebar.markdown("---")
