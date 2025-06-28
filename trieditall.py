@@ -137,12 +137,7 @@ for combo in combos:
 eliminated_counts = len(eliminated_details)
 
 # ─── Interactive Filter UI & Combo Lookup ───
-# Sidebar ribbon with counts
-st.sidebar.markdown(
-    f"**Total combos:** {len(combos)}  \n"
-    f"**Eliminated:** {eliminated_counts}  \n"
-    f"**Remaining:** {len(survivors)}"
-)
+# (Only show updated counts after manual selection)
 
 # Per-filter elimination counts
 filter_counts = {desc:0 for desc in filters_list}
