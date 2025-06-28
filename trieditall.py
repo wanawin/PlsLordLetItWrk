@@ -109,8 +109,16 @@ def input_seed(label):
     return v
 
 current_seed = input_seed("Current 5-digit seed (required):")
-prev_seed    = input_seed("Previous 5-digit seed (required):")
-method       = st.sidebar.selectbox("Generation Method:", ["1-digit","2-digit pair"])
+# Optional inputs for hot, cold, due digits
+hot_input = st.sidebar.text_input("Hot digits (optional, comma-separated):")
+cold_input = st.sidebar.text_input("Cold digits (optional, comma-separated):")
+due_input = st.sidebar.text_input("Due digits (optional, comma-separated):")
+# parse to lists
+hot_digits = [int(d) for d in re.findall(r"\d+", hot_input)] if hot_input else []
+cold_digits = [int(d) for d in re.findall(r"\d+", cold_input)] if cold_input else []
+due_digits = [int(d) for d in re.findall(r"\d+", due_input)] if due_input else []
+
+method = st.sidebar.selectbox("Generation Method:", ["1-digit","2-digit pair"])
 
 # ─── Generate combos solely from current seed ───
 combos = generate_combinations(current_seed, method)
