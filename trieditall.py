@@ -161,4 +161,6 @@ if query:
 # Expander showing remaining survivors
 with st.expander("Show remaining combinations"):
     for c in survivors:
+        st.write(c)("Show remaining combinations"):
+    for c in survivors:
         st.write(c)
