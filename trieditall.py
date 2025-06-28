@@ -138,14 +138,8 @@ eliminated_counts = len(eliminated_details)
 
 # ─── Interactive Filter UI & Combo Lookup ───
 # Sidebar initial counts (with no filters applied)
-# Sidebar initial counts (with no filters applied)
 st.sidebar.markdown(
     f"**Total combos:** {len(combos)}  
-"
-    f"**Eliminated:** 0  
-"
-    f"**Remaining:** {len(combos)}"
-)}  
 "
     f"**Eliminated:** 0  
 "
@@ -164,8 +158,44 @@ if query:
     else:
         st.sidebar.info("Not generated.")
 
+# Main page: checkboxes for each filter
+st.header("🔧 Active Filters")
+select_all = st.checkbox("Select/Deselect All Filters", value=False)
+selected = []
+for desc in filters_list:
+    label = f"{desc} — eliminated {sum(1 for v in eliminated_details.values() if v==desc)}"
+    if st.checkbox(label, value=select_all, key=f"f_{hash(desc)}"):
+        selected.append(desc)
+
+# Re-apply selected filters to update survivors
+new_survivors = []
+new_elim = {}
+for combo in combos:
+    combo_digits = [int(c) for c in combo]
+    for desc in selected:
+        if apply_filter(desc, combo_digits, seed_digits):
+            new_elim[combo] = desc
+            break
+    else:
+        new_survivors.append(combo)
+
+survivors = new_survivors
+eliminated_details = new_elim
+eliminated_counts = len(new_elim)
+
+# Update sidebar ribbon with updated counts
+st.sidebar.markdown(
+    f"**Total combos:** {len(combos)}  
+"
+    f"**Eliminated:** {eliminated_counts}  
+"
+    f"**Remaining:** {len(survivors)}"
+)
+
 # Expander showing remaining survivors
 with st.expander("Show remaining combinations"):
+    for c in survivors:
+        st.write(c)("Show remaining combinations"):
     for c in survivors:
         st.write(c)("Show remaining combinations"):
     for c in survivors:
