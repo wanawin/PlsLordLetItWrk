@@ -115,4 +115,54 @@ def apply_filter(desc, combo_digits, seed_digits,
 # ─── Streamlit UI ───
 st.sidebar.header("🔢 DC-5 Filter Tracker Full")
 
-# ... rest of your Streamlit app code remains unchanged ...
+def input_seed(label, required=True):
+    v = st.sidebar.text_input(label).strip()
+    if required and not v:
+        st.sidebar.error(f"Please enter {label.lower()}")
+        st.stop()
+    if v and (len(v) != 5 or not v.isdigit()):
+        st.sidebar.error("Seed must be exactly 5 digits (0–9)")
+        st.stop()
+    return v
+
+# Inputs
+today_seed = input_seed("Current 5-digit seed (required):")
+prev_seed = input_seed("Previous 5-digit seed (optional):", required=False)
+prev_prev_draw = input_seed("Draw before previous seed (optional):", required=False)
+
+# Parse to digits
+prev_seed_digits = [int(d) for d in prev_seed] if prev_seed else []
+prev_prev_draw_digits = [int(d) for d in prev_prev_draw] if prev_prev_draw else []
+
+# Optional contexts
+hot_input = st.sidebar.text_input("Hot digits (optional, comma-separated):")
+cold_input = st.sidebar.text_input("Cold digits (optional, comma-separated):")
+due_input = st.sidebar.text_input("Due digits (optional, comma-separated):")
+hot_digits = [int(d) for d in re.findall(r"\d+", hot_input)] if hot_input else []
+cold_digits = [int(d) for d in re.findall(r"\d+", cold_input)] if cold_input else []
+due_digits = [int(d) for d in re.findall(r"\d+", due_input)] if due_input else []
+method = st.sidebar.selectbox("Generation Method:", ["1-digit","2-digit pair"])
+
+# Generate combos and helper vars
+combos = generate_combinations(today_seed, method)
+if not combos:
+    st.sidebar.error("No combos generated. Check current seed.")
+    st.stop()
+seed_digits = [int(d) for d in today_seed]
+seed_counts = Counter(seed_digits)
+new_seed_digits = set(seed_digits) - set(prev_seed_digits)
+
+# Elimination
+new_surv, new_elim = [], {}
+for combo in combos:
+    cd = [int(c) for c in combo]
+    for i, desc in enumerate(filters_list):
+        if st.session_state.get(f"filter_{i}", False):
+            if apply_filter(desc, cd, seed_digits,
+                            prev_seed_digits, prev_prev_draw_digits,
+                            seed_counts, new_seed_digits):
+                new_elim[combo] = desc
+                break
+    else:
+        new_surv.append(combo)
+
