@@ -53,8 +53,7 @@ eliminate combo if the digit sum of the combination equals 1.
 "if {0, 1, 3, 6}.issubset(set(seed)) and sum(combo) % 2 != 0: eliminate(combo)"
 # FullHouse on seed (3 of one digit + 2 of another) AND combo sum is even
 from collections import Counter
-seed_counts = Counter(seed_digits)
-if set(seed_counts.values()) == {2, 3} and sum(combo_digits) % 2 == 0:
+seed_counts = Counter(seed_digits)if set(seed_counts.values()) == {2, 3} and sum(combo_digits) % 2 == 0:
     # eliminate this combo
 # any digit in seed that was not in prev_seed must appear in combo
 new_seed_digits = set(seed_digits) - set(prev_seed_digits)
