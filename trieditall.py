@@ -158,61 +158,6 @@ if query:
     else:
         st.sidebar.info("Not generated.")
 
-# Per-filter elimination counts
-# (Only show updated counts after manual selection)
-
-# Per-filter elimination counts
-filter_counts = {desc:0 for desc in filters_list}
-for d in eliminated_details.values():
-    filter_counts[d] += 1
-
-# Main page: checkboxes for each filter
-st.header("🔧 Active Filters")
-# Master select-all toggle
-select_all = st.checkbox("Select/Deselect All Filters", value=False)
-selected = []
-for desc in filters_list:
-    label = f"{desc} — eliminated {filter_counts[desc]}"
-    # default to master toggle state
-    checked = select_all
-    if st.checkbox(label, value=checked, key=f"f_{hash(desc)}"):
-        selected.append(desc)
-
-# Re-apply selected filters to update survivors
-new_survivors = []
-new_elim = {}
-for combo in combos:
-    combo_digits = [int(c) for c in combo]
-    for desc in selected:
-        if apply_filter(desc, combo_digits, seed_digits):
-            new_elim[combo] = desc
-            break
-    else:
-        new_survivors.append(combo)
-
-survivors = new_survivors
-eliminated_details = new_elim
-eliminated_counts = len(new_elim)
-
-# Update sidebar ribbon
-st.sidebar.markdown(
-    f"**[Updated] Total combos:** {len(combos)}  \n"
-    f"**Eliminated:** {eliminated_counts}  \n"
-    f"**Remaining:** {len(survivors)}"
-)
-
-# Combo lookup widget
-st.sidebar.markdown("---")
-query = st.sidebar.text_input("Check a combo (any order):")
-if query:
-    key = "".join(sorted(query.strip()))
-    if key in eliminated_details:
-        st.sidebar.warning(f"Eliminated by: {eliminated_details[key]}")
-    elif key in survivors:
-        st.sidebar.success("It still survives!")
-    else:
-        st.sidebar.info("Not generated.")
-
 # Expander showing remaining survivors
 with st.expander("Show remaining combinations"):
     for c in survivors:
