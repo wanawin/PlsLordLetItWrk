@@ -122,17 +122,8 @@ seed_digits = [int(d) for d in current_seed]
 # ─── Compute elimination help counts ───
 elim_counts = {desc: sum(apply_filter(desc, [int(c) for c in combo], seed_digits) for combo in combos) for desc in filters_list}
 
-# ─── Main Filters & Stats ───
+# ─── Filter selection & elimination ┎──
 st.header("🔧 Active Filters & Combo Stats")
-
-# Stats always visible at top of main
-st.markdown(f"**Total combos:** {len(combos)}  \
-**Eliminated (selected filters):** TBD  \
-**Remaining:** TBD")
-
-# Filter checkboxes in main area
-def sidebar_to_main():
-    pass
 select_all = st.checkbox("Select/Deselect All Filters", value=False)
 selected = []
 for i, desc in enumerate(filters_list):
@@ -152,12 +143,15 @@ for combo in combos:
         new_surv.append(combo)
 survivors, eliminated_details = new_surv, new_elim
 eliminated_counts = len(eliminated_details)
+remaining_counts = len(survivors)
 
-# Update stats now that filters applied
-st.markdown(f"**Eliminated (selected filters):** {eliminated_counts}  \
-**Remaining:** {len(survivors)}")
+# ─── Display stats in a fixed area ───
+col1, col2, col3 = st.columns(3)
+col1.metric("Total Combos", len(combos))
+col2.metric("Eliminated", eliminated_counts)
+col3.metric("Remaining", remaining_counts)
 
-# ─── Sidebar Lookup ───
+# ─── Sidebar Lookup ┎──
 st.sidebar.markdown('---')
 query = st.sidebar.text_input("Check a combo (any order):")
 if query:
@@ -169,7 +163,7 @@ if query:
     else:
         st.sidebar.info("Not generated.")
 
-# ─── Show survivors ───
+# ─── Show survivors ┎──
 with st.expander("Show remaining combinations"):
     for c in survivors:
         st.write(c)
