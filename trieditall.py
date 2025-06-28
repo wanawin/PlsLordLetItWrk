@@ -46,6 +46,11 @@ if os.path.exists(txt_path):
 else:
     st.sidebar.error(f"Filter intent file not found: {txt_path}")
 
+# ─── Ensure Mirror filter is in the list ───
+mirror_desc = "If a combo contains both a digit and its mirror (0/5, 1/6, 2/7, 3/8, 4/9), eliminate combo"
+if mirror_desc not in filters_list:
+    filters_list.append(mirror_desc)
+
 # ─── Combination Generator ───
 def generate_combinations(seed, method="2-digit pair"):
     all_digits = '0123456789'
