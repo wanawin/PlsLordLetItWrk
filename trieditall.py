@@ -4,7 +4,25 @@ from itertools import product
 # ─── Begin Filter Intent TXT Parsing ───
 import csv
 import os
-
+def generate_combinations(seed, method="2-digit pair"):
+    all_digits = '0123456789'
+    combos = set()
+    seed_str = str(seed)
+    if len(seed_str) < 2:
+        return []
+    if method == "1-digit":
+        for d in seed_str:
+            for p in product(all_digits, repeat=4):
+                combo = ''.join(sorted(d + ''.join(p)))
+                combos.add(combo)
+    else:
+        pairs = set(''.join(sorted((seed_str[i], seed_str[j])))
+                    for i in range(len(seed_str)) for j in range(i+1, len(seed_str)))
+        for pair in pairs:
+            for p in product(all_digits, repeat=3):
+                combo = ''.join(sorted(pair + ''.join(p)))
+                combos.add(combo)
+    return sorted(combos)
 # Read filter intent descriptions from plain text file
 txt_path = '/mnt/data/filter_intent_summary_corrected_only.csv'
 filters_list = []
