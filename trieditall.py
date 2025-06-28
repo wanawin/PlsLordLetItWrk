@@ -5,7 +5,6 @@ import os
 import re
 
 # ─── Read filter intent descriptions from CSV ───
-# CSV should live alongside this script in the repo root
 txt_path = 'filter_intent_summary_corrected_only.csv'
 filters_list = []
 if os.path.exists(txt_path):
@@ -28,48 +27,45 @@ def generate_combinations(seed, method="2-digit pair"):
     if method == "1-digit":
         for d in seed_str:
             for p in product(all_digits, repeat=4):
-                combo = ''.join(sorted(d + ''.join(p)))
-                combos.add(combo)
+                combos.add(''.join(sorted(d + ''.join(p))))
     else:
         pairs = set(''.join(sorted((seed_str[i], seed_str[j])))
                     for i in range(len(seed_str)) for j in range(i+1, len(seed_str)))
         for pair in pairs:
             for p in product(all_digits, repeat=3):
-                combo = ''.join(sorted(pair + ''.join(p)))
-                combos.add(combo)
+                combos.add(''.join(sorted(pair + ''.join(p))))
     return sorted(combos)
 
 # ─── Single-filter helper ───
-def apply_filter(desc, combo_digits, seed_digits, sum_combo=None, sum_seed=None):
+def apply_filter(desc, combo_digits, seed_digits):
     d = desc.lower().replace('-', ' ').replace(',', ' ')
-    sum_combo = sum_combo if sum_combo is not None else sum(combo_digits)
-    sum_seed  = sum_seed  if sum_seed  is not None else sum(seed_digits)
-    # 1. digit sum equals N
+    sum_combo = sum(combo_digits)
+    sum_seed = sum(seed_digits)
+    # digit-sum trap
     m = re.search(r"digit sum of the (?:combination|combo) equals (\d+)", d)
     if m and sum_combo == int(m.group(1)):
         return True
-    # 2. seed parity traps
+    # parity traps
     if ('seed contains' in d or 'seed includes digits' in d) and 'sum' in d:
         nums = list(map(int, re.findall(r"\d+", d)))
         if 'even sum' in d and set(nums).issubset(seed_digits) and sum_combo % 2 == 0:
             return True
         if 'odd sum' in d and set(nums).issubset(seed_digits) and sum_combo % 2 == 1:
             return True
-    # 3. end-digit traps
+    # end-digit traps
     m = re.search(r"seed sum end digit is (\d+) and combo sum end digit is (\d+)", d)
     if m and sum_seed % 10 == int(m.group(1)) and sum_combo % 10 == int(m.group(2)):
         return True
-    # 4. shared-digits traps
+    # shared digits
     m = re.search(r"combo has ≥?(\d+) shared digits with seed and combo digit sum < (\d+)", d)
     if m:
         cnt, thr = int(m.group(1)), int(m.group(2))
         if len(set(combo_digits) & set(seed_digits)) >= cnt and sum_combo < thr:
             return True
-    # 5. mirror-sum trap
-    if 'mirror of the seed sum' in d:
-        if sum_combo == int(str(sum_seed)[::-1]):
-            return True
-    # 6. root-sum trap
+    # mirror sum
+    if 'mirror of the seed sum' in d and sum_combo == int(str(sum_seed)[::-1]):
+        return True
+    # root sum
     if 'same root sum as seed' in d:
         def root(n):
             while n >= 10:
@@ -77,78 +73,73 @@ def apply_filter(desc, combo_digits, seed_digits, sum_combo=None, sum_seed=None)
             return n
         if root(sum_combo) == root(sum_seed):
             return True
-    # 7. mirror pair
+    # mirror pair
     if 'digit and its mirror' in d:
         mirrors = {'0':'5','1':'6','2':'7','3':'8','4':'9'}
         for a,b in mirrors.items():
             if int(a) in combo_digits and int(b) in combo_digits:
                 return True
-    # 8. unique >25 trap
+    # unique >25 trap
     if '5 unique digits' in d and '>25' in d and '3 digits must match' in d:
-        if len(set(combo_digits)) == 5 and sum_combo > 25 and len(set(combo_digits)&set(seed_digits)) < 3:
+        if len(set(combo_digits)) == 5 and sum_combo > 25 and len(set(combo_digits) & set(seed_digits)) < 3:
             return True
-    # 9. high/low digits
-    if 'all 5 digits in combo are >/=5' in d and all(c >=5 for c in combo_digits): return True
-    if 'all five digits in combo are <=4' in d and all(c <=4 for c in combo_digits): return True
-    # 10. odd/even digits
-    if 'all 5 digits in combo are odd' in d and all(c%2==1 for c in combo_digits): return True
-    if 'all 5 digits in combo are even' in d and all(c%2==0 for c in combo_digits): return True
+    # high/low
+    if 'all 5 digits in combo are >/=5' in d and all(c>=5 for c in combo_digits):
+        return True
+    if 'all five digits in combo are <=4' in d and all(c<=4 for c in combo_digits):
+        return True
+    # odd/even
+    if 'all 5 digits in combo are odd' in d and all(c%2==1 for c in combo_digits):
+        return True
+    if 'all 5 digits in combo are even' in d and all(c%2==0 for c in combo_digits):
+        return True
     return False
 
-# ─── Streamlit UI Setup ───
+# ─── Streamlit UI ───
 st.sidebar.header("🔢 DC-5 Filter Tracker Full")
 
 def input_seed(label):
-    val = st.sidebar.text_input(label)
-    val = val.strip()
-    if not val:
+    v = st.sidebar.text_input(label).strip()
+    if not v:
         st.sidebar.error(f"Please enter {label.lower()}")
         st.stop()
-    if len(val) != 5 or not val.isdigit():
+    if len(v) != 5 or not v.isdigit():
         st.sidebar.error("Seed must be exactly 5 digits (0–9)")
         st.stop()
-    return val
+    return v
 
 current_seed = input_seed("Current 5-digit seed (required):")
 prev_seed    = input_seed("Previous 5-digit seed (required):")
+method       = st.sidebar.selectbox("Generation Method:",["1-digit","2-digit pair"])
 
-hot_digits  = [int(d) for d in st.sidebar.text_input("Hot digits (comma-separated):").replace(' ','').split(',') if d]
-cold_digits = [int(d) for d in st.sidebar.text_input("Cold digits (comma-separated):").replace(' ','').split(',') if d]
-due_digits  = [int(d) for d in st.sidebar.text_input("Due digits (comma-separated):").replace(' ','').split(',') if d]
-method       = st.sidebar.selectbox("Generation Method:", ["1-digit","2-digit pair"])
-
-# ─── Compute combos and initial elimination ───
+# generate & apply
 combos = generate_combinations(prev_seed, method)
 if not combos:
     st.sidebar.error("No combos generated. Check previous seed.")
     st.stop()
-
 seed_digits = [int(d) for d in current_seed]
 eliminated_details = {}
 survivors = []
 for combo in combos:
-    combo_digits = [int(c) for c in combo]
+    cd = [int(c) for c in combo]
     for desc in filters_list:
-        if apply_filter(desc, combo_digits, seed_digits):
+        if apply_filter(desc, cd, seed_digits):
             eliminated_details[combo] = desc
             break
     else:
         survivors.append(combo)
 eliminated_counts = len(eliminated_details)
 
-# ─── Interactive Filter UI & Combo Lookup ───
-# Sidebar initial counts (with no filters applied)
+# ─── Sidebar Ribbon & Lookup ┎──
 st.sidebar.markdown(f"""
 **Total combos:** {len(combos)}  
-**Eliminated:** 0  
-**Remaining:** {len(combos)}
-""")
-
-# Combo lookup widget
-st.sidebar.markdown("---")
+**Eliminated:** {eliminated_counts}  
+**Remaining:** {len(survivors)}
+""" )
+st.sidebar.markdown('---')
 query = st.sidebar.text_input("Check a combo (any order):")
 if query:
-    key = "".join(sorted(query.strip()))
+    key = ''.join(sorted(query.strip()))
     if key in eliminated_details:
         st.sidebar.warning(f"Eliminated by: {eliminated_details[key]}")
     elif key in survivors:
@@ -156,84 +147,38 @@ if query:
     else:
         st.sidebar.info("Not generated.")
 
-# Main page: checkboxes for each filter
+# ─── Active Filters UI ───
 st.header("🔧 Active Filters")
 select_all = st.checkbox("Select/Deselect All Filters", value=False)
 selected = []
 for desc in filters_list:
-    count = sum(1 for v in eliminated_details.values() if v == desc)
-    label = f"{desc} — eliminated {count}"
+    cnt = sum(1 for v in eliminated_details.values() if v == desc)
+    label = f"{desc} — eliminated {cnt}"
     if st.checkbox(label, value=select_all, key=f"f_{hash(desc)}"):
         selected.append(desc)
 
-# Re-apply selected filters to update survivors
-new_survivors = []
-new_elim      = {}
-for combo in combos:
-    combo_digits = [int(c) for c in combo]
-    for desc in selected:
-        if apply_filter(desc, combo_digits, seed_digits):
-            new_elim[combo] = desc
-            break
-    else:
-        new_survivors.append(combo)
-
-survivors          = new_survivors
-eliminated_details = new_elim
-eliminated_counts  = len(new_elim)
-
-# Update sidebar ribbon with updated counts
-st.sidebar.markdown(
-    f"**Total combos:** {len(combos)}  \n"
-    f"**Eliminated:** {eliminated_counts}  \n"
-    f"**Remaining:** {len(survivors)}"
-)
-
-# Expander showing remaining survivors
-with st.expander("Show remaining combinations"):
-    for c in survivors:
-        st.write(c)
-
-
-# Main page: checkboxes for each filter
-st.header("🔧 Active Filters")
-select_all = st.checkbox("Select/Deselect All Filters", value=False)
-selected = []
-for desc in filters_list:
-    label = f"{desc} — eliminated {sum(1 for v in eliminated_details.values() if v==desc)}"
-    if st.checkbox(label, value=select_all, key=f"f_{hash(desc)}"):
-        selected.append(desc)
-
-# Re-apply selected filters to update survivors
-new_survivors = []
+# re-apply selected filters
+new_surv = []
 new_elim = {}
 for combo in combos:
-    combo_digits = [int(c) for c in combo]
+    cd = [int(c) for c in combo]
     for desc in selected:
-        if apply_filter(desc, combo_digits, seed_digits):
+        if apply_filter(desc, cd, seed_digits):
             new_elim[combo] = desc
             break
     else:
-        new_survivors.append(combo)
+        new_surv.append(combo)
+survivors, eliminated_details = new_surv, new_elim
+eliminated_counts = len(eliminated_details)
 
-survivors = new_survivors
-eliminated_details = new_elim
-eliminated_counts = len(new_elim)
-
-# Update sidebar ribbon with updated counts
-st.sidebar.markdown(
-    f"**Total combos:** {len(combos)}  
-"
-    f"**Eliminated:** {eliminated_counts}  
-"
-    f"**Remaining:** {len(survivors)}"
+# update ribbon
+st.sidebar.markdown(f"""
+**Total combos:** {len(combos)}  
+**Eliminated:** {eliminated_counts}  
+**Remaining:** {len(survivors)}
+"""
 )
 
-# Expander showing remaining survivors
 with st.expander("Show remaining combinations"):
-    for c in survivors:
-        st.write(c)("Show remaining combinations"):
-    for c in survivors:
-        st.write(c)("Show remaining combinations"):
     for c in survivors:
         st.write(c)
