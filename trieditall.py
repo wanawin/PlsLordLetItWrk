@@ -112,10 +112,10 @@ current_seed = input_seed("Current 5-digit seed (required):")
 prev_seed    = input_seed("Previous 5-digit seed (required):")
 method       = st.sidebar.selectbox("Generation Method:", ["1-digit","2-digit pair"])
 
-# generate combos
-combos = generate_combinations(prev_seed, method)
+# ─── Generate combos solely from current seed ───
+combos = generate_combinations(current_seed, method)
 if not combos:
-    st.sidebar.error("No combos generated. Check previous seed.")
+    st.sidebar.error("No combos generated. Check current seed.")
     st.stop()
 seed_digits = [int(d) for d in current_seed]
 
@@ -123,19 +123,13 @@ seed_digits = [int(d) for d in current_seed]
 elim_counts = {desc: sum(apply_filter(desc, [int(c) for c in combo], seed_digits) for combo in combos) for desc in filters_list}
 
 # ─── Selection & elimination ───
-selected = []
-for i, desc in enumerate(filters_list):
-    # we will collect selected filters via session_state
-    pass
-# apply filters based on checkbox states
 new_surv, new_elim = [], {}
 for combo in combos:
     cd = [int(c) for c in combo]
-    for desc in filters_list:
-        if st.session_state.get(f"filter_{filters_list.index(desc)}", False):
-            if apply_filter(desc, cd, seed_digits):
-                new_elim[combo] = desc
-                break
+    for i, desc in enumerate(filters_list):
+        if st.session_state.get(f"filter_{i}", False) and apply_filter(desc, cd, seed_digits):
+            new_elim[combo] = desc
+            break
     else:
         new_surv.append(combo)
 survivors, eliminated_details = new_surv, new_elim
@@ -159,16 +153,12 @@ if query:
     else:
         st.sidebar.info("Not generated.")
 
-# ─── Main filters in white space ───
+# ─── Main filter checkboxes ───
 st.header("🔧 Active Filters")
 select_all = st.checkbox("Select/Deselect All Filters", value=False)
 for i, desc in enumerate(filters_list):
     label = f"{desc} — eliminated {elim_counts[desc]}"
-    st.checkbox(
-        label=label,
-        value=select_all,
-        key=f"filter_{i}"
-    )
+    st.checkbox(label=label, value=select_all, key=f"filter_{i}")
 
 # ─── Show survivors ───
 with st.expander("Show remaining combinations"):
