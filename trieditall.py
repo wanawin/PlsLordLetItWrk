@@ -108,8 +108,11 @@ def input_seed(label):
         st.stop()
     return v
 
+# required current seed
 current_seed = input_seed("Current 5-digit seed (required):")
-# Optional inputs for hot, cold, due digits
+# optional previous seed for filter context
+prev_seed = st.sidebar.text_input("Previous 5-digit seed (optional):").strip()
+# optional filter context digits
 hot_input = st.sidebar.text_input("Hot digits (optional, comma-separated):")
 cold_input = st.sidebar.text_input("Cold digits (optional, comma-separated):")
 due_input = st.sidebar.text_input("Due digits (optional, comma-separated):")
