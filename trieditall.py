@@ -119,10 +119,42 @@ if not combos:
     st.stop()
 seed_digits = [int(d) for d in current_seed]
 
-# ─── Initial state ───
-eliminated_details = {}
-survivors = list(combos)
-eliminated_counts = 0
+# ─── Compute elimination help counts ───
+elim_counts = {}
+for desc in filters_list:
+    cnt = 0
+    for combo in combos:
+        cd = [int(c) for c in combo]
+        if apply_filter(desc, cd, seed_digits):
+            cnt += 1
+    elim_counts[desc] = cnt
+
+# ─── Active Filters Section (dynamic on check) ───
+st.sidebar.header("🔧 Active Filters")
+select_all = st.sidebar.checkbox("Select/Deselect All Filters", value=False)
+selected = []
+for i, desc in enumerate(filters_list):
+    label = f"{desc} — eliminated {elim_counts[desc]}"
+    checked = st.sidebar.checkbox(
+        label=label,
+        value=select_all,
+        key=f"filter_{i}"
+    )
+    if checked:
+        selected.append(desc)
+
+# apply filters immediately
+new_surv, new_elim = [], {}
+for combo in combos:
+    cd = [int(c) for c in combo]
+    for desc in selected:
+        if apply_filter(desc, cd, seed_digits):
+            new_elim[combo] = desc
+            break
+    else:
+        new_surv.append(combo)
+survivors, eliminated_details = new_surv, new_elim
+eliminated_counts = len(eliminated_details)
 
 # ─── Sidebar Ribbon & Lookup ───
 st.sidebar.markdown(f"""
@@ -140,48 +172,6 @@ if query:
         st.sidebar.success("It still survives!")
     else:
         st.sidebar.info("Not generated.")
-
-# ─── Active Filters Section ───
-st.sidebar.header("🔧 Active Filters")
-with st.sidebar.form(key="filter_form"):
-    select_all = st.checkbox("Select/Deselect All Filters", value=False)
-    for i, desc in enumerate(filters_list):
-        st.checkbox(
-            label=f"{desc}",
-            value=select_all,
-            key=f"filter_{i}"
-        )
-    apply = st.form_submit_button("Apply Selected Filters")
-
-# apply only when the user clicks
-if apply:
-    selected = [
-        filters_list[i]
-        for i in range(len(filters_list))
-        if st.session_state.get(f"filter_{i}", False)
-    ]
-    new_surv, new_elim = [], {}
-    for combo in combos:
-        cd = [int(c) for c in combo]
-        for desc in selected:
-            if apply_filter(desc, cd, seed_digits):
-                new_elim[combo] = desc
-                break
-        else:
-            new_surv.append(combo)
-    survivors, eliminated_details = new_surv, new_elim
-    eliminated_counts = len(eliminated_details)
-else:
-    survivors = combos
-    eliminated_details = {}
-    eliminated_counts = 0
-
-# ─── Update Sidebar Ribbon ───
-st.sidebar.markdown(f"""
-**Total combos:** {len(combos)}  
-**Eliminated:** {eliminated_counts}  
-**Remaining:** {len(survivors)}
-""" )
 
 # ─── Show survivors ───
 with st.expander("Show remaining combinations"):
