@@ -4,25 +4,7 @@ from itertools import product
 # ─── Begin Filter Intent TXT Parsing ───
 import csv
 import os
-def generate_combinations(seed, method="2-digit pair"):
-    all_digits = '0123456789'
-    combos = set()
-    seed_str = str(seed)
-    if len(seed_str) < 2:
-        return []
-    if method == "1-digit":
-        for d in seed_str:
-            for p in product(all_digits, repeat=4):
-                combo = ''.join(sorted(d + ''.join(p)))
-                combos.add(combo)
-    else:
-        pairs = set(''.join(sorted((seed_str[i], seed_str[j])))
-                    for i in range(len(seed_str)) for j in range(i+1, len(seed_str)))
-        for pair in pairs:
-            for p in product(all_digits, repeat=3):
-                combo = ''.join(sorted(pair + ''.join(p)))
-                combos.add(combo)
-    return sorted(combos)
+
 # Read filter intent descriptions from plain text file
 txt_path = '/mnt/data/filter_intent_summary_corrected_only.csv'
 filters_list = []
@@ -59,6 +41,83 @@ def generate_combinations(seed, method="2-digit pair"):
                 combo = ''.join(sorted(pair + ''.join(p)))
                 combos.add(combo)
     return sorted(combos)
+# ─── Begin dynamic filter logic using filters_list ───
+import re
+
+def should_eliminate(combo_digits, seed_digits):
+    """Apply filters dynamically based on plain-English descriptions in filters_list."""
+    sum_combo = sum(combo_digits)
+    sum_seed  = sum(seed_digits)
+
+    for desc in filters_list:
+        d = desc.lower().replace('-', ' ').replace(',', ' ')
+
+        # 1. digit sum equals N
+        m = re.search(r"digit sum of the (?:combination|combo) equals (\\d+)", d)
+        if m and sum_combo == int(m.group(1)):
+            return True
+
+        # 2. seed parity traps (even/odd sums)
+        if ('seed contains' in d or 'seed includes digits' in d) and 'sum' in d:
+            nums = list(map(int, re.findall(r"\\d+", d)))
+            if 'even sum' in d and set(nums).issubset(seed_digits) and sum_combo % 2 == 0:
+                return True
+            if 'odd sum' in d and set(nums).issubset(seed_digits) and sum_combo % 2 == 1:
+                return True
+
+        # 3. seed sum end digit traps
+        m = re.search(r"seed sum end digit is (\\d+) and combo sum end digit is (\\d+)", d)
+        if m and sum_seed % 10 == int(m.group(1)) and sum_combo % 10 == int(m.group(2)):
+            return True
+
+        # 4. shared digits traps
+        m = re.search(r"combo has ≥?(\\d+) shared digits with seed and combo digit sum < (\\d+)", d)
+        if m:
+            count, thresh = int(m.group(1)), int(m.group(2))
+            if len(set(combo_digits) & set(seed_digits)) >= count and sum_combo < thresh:
+                return True
+
+        # 5. mirror sum trap
+        if 'mirror of the seed sum' in d:
+            mirror = int(str(sum_seed)[::-1])
+            if sum_combo == mirror:
+                return True
+
+        # 6. same root sum as seed
+        if 'same root sum as seed' in d:
+            def root(n):
+                while n >= 10:
+                    n = sum(map(int, str(n)))
+                return n
+            if root(sum_combo) == root(sum_seed):
+                return True
+
+        # 7. digit-mirror pair trap
+        if 'digit and its mirror' in d:
+            mirrors = {'0':'5','1':'6','2':'7','3':'8','4':'9'}
+            for a,b in mirrors.items():
+                if int(a) in combo_digits and int(b) in combo_digits:
+                    return True
+
+        # 8. unique digits >25 trap
+        if '5 unique digits' in d and '>25' in d and '3 digits must match' in d:
+            if len(set(combo_digits)) == 5 and sum_combo > 25 and len(set(combo_digits) & set(seed_digits)) < 3:
+                return True
+
+        # 9. all high/low digits
+        if 'all 5 digits in combo are >/=5' in d and all(c >= 5 for c in combo_digits):
+            return True
+        if 'all five digits in combo are< /=4' in d and all(c <= 4 for c in combo_digits):
+            return True
+
+        # 10. all odd or all even
+        if 'all 5 digits in combo are odd' in d and all(c % 2 == 1 for c in combo_digits):
+            return True
+        if 'all 5 digits in combo are even' in d and all(c % 2 == 0 for c in combo_digits):
+            return True
+
+    return False
+# ─── End dynamic filter logic ───
 
 # ─── Begin dynamic filter logic using filters_list ───
 def should_eliminate(combo_digits, seed_digits):
