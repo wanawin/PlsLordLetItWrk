@@ -51,34 +51,12 @@ eliminate combo if the digit sum of the combination equals 1.
 "if {0, 2, 3, 7}.issubset(set(seed)) and sum(combo) % 2 != 0: eliminate(combo)"
 "if {0, 1, 7, 9}.issubset(set(seed)) and sum(combo) % 2 != 0: eliminate(combo)"
 "if {0, 1, 3, 6}.issubset(set(seed)) and sum(combo) % 2 != 0: eliminate(combo)"
-# FullHouse on seed (3 of one digit + 2 of another) AND combo sum is even
-from collections import Counter seed_counts = Counter(seed_digits)if set(seed_counts.values()) == {2, 3} and sum(combo_digits) % 2 == 0:
-    # eliminate this combo
-# any digit in seed that was not in prev_seed must appear in combo
-new_seed_digits = set(seed_digits) - set(prev_seed_digits)
-if new_seed_digits and not new_seed_digits.intersection(combo_digits):
-    # eliminate this combo
-# count how many combo digits are in both prev_seed and the draw before that
-common_to_both = set(prev_prev_draw).intersection(prev_seed_digits)
-if sum(d in common_to_both for d in combo_digits) >= 2:
-    # eliminate this combo
-# gather all digits seen in the last two draws
-last2 = set(prev_prev_draw) | set(prev_seed_digits)
-if len(last2.intersection(combo_digits)) < 2:
-    # eliminate this combo
-# same as #4, but now *eliminate* if it DOES contain two such digits
-last2 = set(prev_prev_draw) | set(prev_seed_digits)
-if len(last2.intersection(combo_digits)) >= 2:
-    # eliminate this combo
-last2 = set(prev_prev_draw) | set(prev_seed_digits)
-if not set(combo_digits).difference(last2):
-    # eliminate this combo
-
-Eliminate combo if it does not contain at least one digit which is present in the seed but was not present in the draw preceding the seed.
-Eliminate combo if it contains at least 2 digits which appeared in both of the previous 2 draws (including seed).
-Eliminate combo if it does not contain at least 2 distinct digits which were present in at least one of the previous 2 draws (including seed).
-Eliminate combo if it contains at least 2 distinct digits which each appeared in at least one of the previous 2 draws (including seed).
-Eliminate combo if it does NOT include at least one digit not present in the previous 2 draws (including seed).
+# FullHouse on seed (3 of one digit + 2 of another) AND combo sum is even from collections import Counter seed_counts = Counter(seed_digits)if set(seed_counts.values()) == {2, 3} and sum(combo_digits) % 2 == 0:eliminate this combo
+any digit in seed that was not in prev_seed must appear in combo new_seed_digits = set(seed_digits) - set(prev_seed_digits) if new_seed_digits and not new_seed_digits.intersection(combo_digits): eliminate this combo
+# count how many combo digits are in both prev_seed and the draw before that common_to_both = set(prev_prev_draw).intersection(prev_seed_digits) if sum(d in common_to_both for d in combo_digits) >= 2: eliminate this combo
+# gather all digits seen in the last two draws last2 = set(prev_prev_draw) | set(prev_seed_digits) if len(last2.intersection(combo_digits)) < 2: eliminate this combo
+# same as #4, but now *eliminate* if it DOES contain two such digits last2 = set(prev_prev_draw) | set(prev_seed_digits) if len(last2.intersection(combo_digits)) >= 2: eliminate this combo
+last2 = set(prev_prev_draw) | set(prev_seed_digits) if not set(combo_digits).difference(last2): eliminate this combo
 "if seed sum end digit is 7 and combo sum end digit is 8, eliminate combo."
 "if seed sum end digit is 4 and combo sum end digit is 8, eliminate combo."
 "if seed sum end digit is 1 and combo sum end digit is 7, eliminate combo."
