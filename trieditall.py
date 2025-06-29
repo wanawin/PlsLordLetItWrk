@@ -4,6 +4,7 @@ import csv
 import os
 import re
 from collections import Counter
+import pandas as pd  # for diagnostics panel
 
 # ─── V-Trac group definitions ───
 # Map each digit (0–9) to its V-Trac group (1–5)
@@ -195,6 +196,26 @@ for i, desc in enumerate(filters_list):
     )
     label = f"{desc} — eliminated {count_elim}"
     st.checkbox(label, value=select_all, key=f"filter_{i}")
+
+# Diagnostics Panel
+st.subheader("🛠️ Filter Diagnostics")
+stats = []
+for desc in filters_list:
+    count = sum(
+        apply_filter(
+            desc,
+            [int(c) for c in combo],
+            seed_digits,
+            prev_seed_digits,
+            prev_prev_draw_digits,
+            seed_counts,
+            new_seed_digits
+        )
+        for combo in combos
+    )
+    stats.append((desc, count))
+df = pd.DataFrame(stats, columns=["Filter description", "Eliminated count"])
+st.dataframe(df)
 
 # Show remaining combos
 with st.expander("Show remaining combinations"):
